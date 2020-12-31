@@ -3,25 +3,57 @@ from django.shortcuts import render
 
 # Create your views here.
 from rest_framework import viewsets, status
+from rest_framework.decorators import action
+from rest_framework.generics import RetrieveUpdateDestroyAPIView, UpdateAPIView
 from rest_framework.response import Response
 
-from .serializers import QuestionSerializer, ChoiceSerializer, AnswerSerializer
-from .models import Question, Choice, Answer
+from .serializers import *
+from .models import *
 
 
 class QuestionViewSet(viewsets.ModelViewSet):
     serializer_class = QuestionSerializer
     queryset = Question.objects.all()
+    #lookup_field = 'id'
+
+    @action(detail=True, methods=["get"])
+    def choices(self, *args, **kwargs):
+        question = self.get_object()
+        choices = Choice.objects.filter(questions=question)
+        serializer = ChoiceSerializer(choices, many=True)
+        return Response(serializer.data, status=200)
+
+    @action(detail=True, methods=["post"])
+    def choice(self, request, *args, **kwargs):
+        data = request.data
+        serializer = ChoiceSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=200)
+        return Response(serializer.errors, status=400)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        return Response("Deleted successfully", status=200)
 
     def get_serializer_class(self, *args, **kwargs):
-        if self.action == 'retrieve':
-            self.serializer_class.Meta.depth = 1
+        if self.action == 'partial_update':
+            return QuestionPartialUpdateSerializer
         else:
-            self.serializer_class.Meta.depth = 0
-        return self.serializer_class
+            if self.action == 'retrieve':
+                self.serializer_class.Meta.depth = 1
+            else:
+                self.serializer_class.Meta.depth = 0
+            return self.serializer_class
 
 
-"""class ChoiceListViewSet(viewsets.ModelViewSet):
+class QuestionUpdateAPIView(UpdateAPIView):
+    serializer_class = QuestionSerializer1
+    queryset = Question.objects.all()
+
+
+class ChoiceListViewSet(viewsets.ModelViewSet):
     serializer_class = ChoiceSerializer
     queryset = Choice.objects.all()
 
@@ -30,7 +62,14 @@ class QuestionViewSet(viewsets.ModelViewSet):
             self.serializer_class.Meta.depth = 1
         else:
             self.serializer_class.Meta.depth = 0
-        return self.serializer_class"""
+        return self.serializer_class
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        result = {"detail": "Deleted successfully"}
+        return Response(result, status=200)
+
 
 
 class AnswerViewSet(viewsets.ModelViewSet):
@@ -38,11 +77,20 @@ class AnswerViewSet(viewsets.ModelViewSet):
     queryset = Answer.objects.all()
 
     def get_serializer_class(self, *args, **kwargs):
-        if self.action == 'retrieve':
-            self.serializer_class.Meta.depth = 1
+        if self.action == 'list':
+            return AnswerSerializer
         else:
-            self.serializer_class.Meta.depth = 0
-        return self.serializer_class
+            if self.action == 'retrieve':
+                self.serializer_class.Meta.depth = 2
+            else:
+                self.serializer_class.Meta.depth = 1
+            return self.serializer_class
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        result = {"detail": "Deleted successfully"}
+        return Response(result, status=200)
 
     """def get_queryset(self):
         choice = Choice.objects.filter(choice_text=self.kwargs['id'])
@@ -56,14 +104,16 @@ class AnswerViewSet(viewsets.ModelViewSet):
         serializer = QuestionSerializer(quiz.question.all(), many=True)
         return Response(serializer.data)"""
 
-#    def create(self, request, id, choice_id):
-#        data = {'choice': choice_id, 'question': id}
-#        serializer = QuizSerializer(data=data)
-#        if serializer.is_valid():
-#            quiz = serializer.save()
-#            return Response(serializer.data, status=status.HTTP_201_CREATED)
-#        else:
-#            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    """def create(self, request, id, choice_id):
+        data=request.data
+        data['question']
+        data = {'choice': choice_id, 'question': id}
+        serializer = AnswerSerializer(data=data)
+        if serializer.is_valid():
+            quiz = serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)"""
 
 
 

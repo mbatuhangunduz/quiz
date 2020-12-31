@@ -6,19 +6,19 @@ class Question(models.Model):
     image = models.FileField(upload_to="question_image", unique=False, blank=True, null=True)
 
     def __str__(self):
-        return ('1' + self.question_text)
+        return '1' + self.question_text
 
 
 class Choice(models.Model):
     choice_text = models.CharField(max_length=100)
-    questions = models.ForeignKey(Question, related_name='choices', on_delete=models.CASCADE)
+    questions = models.ForeignKey(Question, related_name='choices', on_delete=models.CASCADE, null=True)
 
     def __str__(self):
         return self.choice_text
 
 
 class Answer(models.Model):
-    choice = models.ForeignKey(Choice, related_name='quizzes', on_delete=models.CASCADE)
+    choice = models.ForeignKey(Choice, related_name='answers', on_delete=models.CASCADE)
     questions = models.ForeignKey(Question, on_delete=models.CASCADE)
 
 
